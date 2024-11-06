@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MATRIX_SIZE 5
+#define ALPHABET_SIZE 26
+
+// Function to remove non-alphabet characters and make the text uppercase
+void cleanText(char *text) {
+    int j = 0;
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            text[j++] = toupper(text[i]);
+        }
+    }
+    text[j] = '\0'; // Null-terminate the cleaned text
+}
+
+// Function to create the Playfair matrix from a given keyword
+void createPlayfairMatrix(char *key, char matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int used[ALPHABET_SIZE] = {0}; // Track used letters
+    int k = 0;
+
+    // Clean the key (remove non-alphabet characters and make uppercase)
+    cleanText(key);
+
+    // Fill the matrix with the letters of the key
+    for (int i = 0; key[i] != '\0'; i++) {
+        if (!used[key[i] - 'A']) {
+            matrix[k / MATRIX_SIZE][k % MATRIX_SIZE] = key[i];
+            used[key[i] - 'A'] = 1;
+            k++;
+        }
+    }
+
+    // Fill the rest of the matrix with the remaining letters of the alphabet
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (!used[c - 'A'] && c != 'J') { // J is usually omitted
+            matrix[k / MATRIX_SIZE][k % MATRIX_SIZE] = c;
+            used[c - 'A'] = 1;
+            k++;
+        }
+    }
+}
+
+// Function to find the position of a letter in the Playfair matrix
+void findPosition(char letter, char matrix[MATRIX_SIZE][MATRIX_SIZE], int *row, int *col) {
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            if (matrix[i][j] == letter) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+// Function to decrypt a digraph using the Playfair cipher rules
+void decryptDigraph(char first, char second, char matrix[MATRIX_SIZE][MATRIX_SIZE], char *decrypted1, char *decrypted2) {
+    int row1, col1, row2, col2;
+
+    // Find positions of both letters in the matrix
+    findPosition(first, matrix, &row1, &col1);
+    findPosition(second, matrix, &row2, &col2);
+
+    // Rule 1: If both letters are in the same row, take the letter to the immediate left (wrap around to the right end if necessary)
+    if (row1 == row2) {
+        *decrypted1 = matrix[row1][(col1 - 1 + MATRIX_SIZE) % MATRIX_SIZE];
+        *decrypted2 = matrix[row2][(col2 - 1 + MATRIX_SIZE) % MATRIX_SIZE];
+    }
+    // Rule 2: If both letters are in the same column, take the letter immediately above (wrap around to the bottom if necessary)
+    else if (col1 == col2) {
+        *decrypted1 = matrix[(row1 - 1 + MATRIX_SIZE) % MATRIX_SIZE][col1];
+        *decrypted2 = matrix[(row2 - 1 + MATRIX_SIZE) % MATRIX_SIZE][col2];
+    }
+    // Rule 3: If the letters form a rectangle, take the letter in the same row but in the column of the other letter
+    else {
+        *decrypted1 = matrix[row1][col2];
+        *decrypted2 = matrix[row2][col1];
+    }
+}
+
+// Function to decrypt the entire ciphertext
+void decryptPlayfair(char *ciphertext, char *key, char *plaintext) {
+    char matrix[MATRIX_SIZE][MATRIX_SIZE];
+    int len = strlen(ciphertext);
+    int j = 0;
+
+    // Create the Playfair matrix from the key
+    createPlayfairMatrix(key, matrix);
+
+    // Process the ciphertext two characters at a time (digraphs)
+    for (int i = 0; i < len; i += 2) {
+        char first = ciphertext[i];
+        char second = (i + 1 < len) ? ciphertext[i + 1] : 'X'; // If there is an odd number of characters, add 'X'
+
+        // Decrypt the digraph
+        decryptDigraph(first, second, matrix, &plaintext[j], &plaintext[j + 1]);
+        j += 2;
+    }
+
+    plaintext[j] = '\0'; // Null-terminate the plaintext
+}
+
+int main() {
+    char ciphertext[] = "KXJEY UREBE ZWEHE WRYTU HEYFS KREHE GOYFI WTTTU OLKSY CAJPO BOTEI ZONTX BYBNT GONEY CUZWR GDSON SXBOU YWRHE BAAHY USEDQ";
+    char key[] = "KEYWORD"; // Keyword to generate the matrix (can be changed)
+    char plaintext[256];
+
+    // Clean the ciphertext (remove spaces and make uppercase)
+    cleanText(ciphertext);
+
+    // Decrypt the ciphertext using the Playfair cipher
+    decryptPlayfair(ciphertext, key, plaintext);
+
+    // Print the decrypted message
+    printf("Decrypted Message: %s\n", plaintext);
+
+    return 0;
+}
