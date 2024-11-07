@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>
+
+#define ALPHABET_SIZE 26
+#define MAX_TEXT_SIZE 1000
+#define TOP_N 10
+
+// Frequency distribution of letters in the English language (from most frequent to least frequent)
+const double english_freq[] = {
+    0.127, 0.090, 0.082, 0.074, 0.067, 0.060, 0.051, 0.045, 0.040, 0.035,
+    0.033, 0.031, 0.028, 0.025, 0.022, 0.020, 0.018, 0.017, 0.015, 0.014,
+    0.012, 0.011, 0.010, 0.009, 0.008, 0.007, 0.006, 0.005
+};
+
+// Function to calculate the letter frequency of a given text
+void calculate_frequency(const char *text, double *freq) {
+    int letter_count[ALPHABET_SIZE] = {0};
+    int total_letters = 0;
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = tolower(text[i]);
+        if (c >= 'a' && c <= 'z') {
+            letter_count[c - 'a']++;
+            total_letters++;
+        }
+    }
+
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (total_letters > 0) {
+            freq[i] = (double)letter_count[i] / total_letters;
+        } else {
+            freq[i] = 0;
+        }
+    }
+}
+
+// Function to calculate the "score" of a plaintext by comparing frequencies with English letter frequencies
+double compare_frequencies(double *text_freq) {
+    double score = 0.0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        score += fabs(text_freq[i] - english_freq[i]);
+    }
+    return score;  // The lower the score, the more likely the text is English
+}
+
+// Function to apply a monoalphabetic substitution cipher using a given key (substitution map)
+void apply_substitution(const char *ciphertext, char *plaintext, char *substitution_map) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            char base = isupper(ciphertext[i]) ? 'A' : 'a';
+            plaintext[i] = substitution_map[tolower(ciphertext[i]) - 'a'];
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[strlen(ciphertext)] = '\0';  // Null-terminate the plaintext string
+}
+
+// Function to generate the substitution map based on letter frequency analysis
+void generate_substitution_map(double *cipher_freq, char *substitution_map) {
+    char letters[] = "abcdefghijklmnopqrstuvwxyz";
+    int cipher_order[ALPHABET_SIZE];
+    int english_order[ALPHABET_SIZE];
+
+    // Sort the ciphertext frequencies in descending order
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        cipher_order[i] = i;
+        english_order[i] = i;
+    }
+
+    // Sort ciphertext frequency indices in descending order based on frequency
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = i + 1; j < ALPHABET_SIZE; j++) {
+            if (cipher_freq[cipher_order[i]] < cipher_freq[cipher_order[j]]) {
+                int temp = cipher_order[i];
+                cipher_order[i] = cipher_order[j];
+                cipher_order[j] = temp;
+            }
+        }
+    }
+
+    // Sort English frequency indices in descending order based on frequency
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = i + 1; j < ALPHABET_SIZE; j++) {
+            if (english_freq[english_order[i]] < english_freq[english_order[j]]) {
+                int temp = english_order[i];
+                english_order[i] = english_order[j];
+                english_order[j] = temp;
+            }
+        }
+    }
+
+    // Generate the substitution map based on sorted frequencies
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        substitution_map[cipher_order[i]] = letters[english_order[i]];
+    }
+}
+
+// Function to perform a frequency attack on the ciphertext
+void letter_frequency_attack(const char *ciphertext) {
+    double ciphertext_freq[ALPHABET_SIZE];
+    calculate_frequency(ciphertext, ciphertext_freq);
+
+    // Array to store possible plaintexts and their scores
+    char possible_plaintexts[ALPHABET_SIZE][MAX_TEXT_SIZE];
+    double scores[ALPHABET_SIZE];
+
+    // Generate the substitution map based on letter frequencies
+    char substitution_map[ALPHABET_SIZE];
+    generate_substitution_map(ciphertext_freq, substitution_map);
+
+    // Apply the substitution map to generate a possible plaintext
+    char plaintext[MAX_TEXT_SIZE];
+    apply_substitution(ciphertext, plaintext, substitution_map);
+
+    // Calculate the score for this substitution
+    double plaintext_freq[ALPHABET_SIZE];
+    calculate_frequency(plaintext, plaintext_freq);
+    scores[0] = compare_frequencies(plaintext_freq);
+    strcpy(possible_plaintexts[0], plaintext);
+
+    // Sort and display the possible plaintexts based on their scores
+    printf("Top %d possible plaintexts based on frequency analysis:\n", TOP_N);
+    for (int i = 0; i < 1; i++) {
+        printf("Rank %d: %s\n", i + 1, possible_plaintexts[i]);
+    }
+}
+
+int main() {
+    // Sample ciphertext (monoalphabetic substitution cipher)
+    char ciphertext[MAX_TEXT_SIZE];
+    
+    // Get the ciphertext from the user
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, MAX_TEXT_SIZE, stdin);
+    ciphertext[strcspn(ciphertext, "\n")] = '\0';  // Remove trailing newline
+
+    // Perform the frequency attack on the ciphertext
+    letter_frequency_attack(ciphertext);
+
+    return 0;
+}
