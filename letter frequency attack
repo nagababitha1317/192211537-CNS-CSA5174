@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <math.h>  // Include the math library for fabs()
+
+#define ALPHABET_SIZE 26
+#define MAX_TEXT_SIZE 1000
+#define TOP_N 10
+
+// Frequency distribution of letters in the English language
+const double english_freq[] = {
+    0.082, 0.015, 0.028, 0.043, 0.127, 0.022, 0.020, 0.061, 0.070, 0.002,
+    0.008, 0.040, 0.024, 0.067, 0.075, 0.019, 0.001, 0.060, 0.063, 0.091,
+    0.028, 0.010, 0.023, 0.001, 0.020, 0.002, 0.002, 0.001
+};
+
+// Function to calculate the letter frequency of a given text
+void calculate_frequency(const char *text, double *freq) {
+    int letter_count[ALPHABET_SIZE] = {0};
+    int total_letters = 0;
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = tolower(text[i]);
+        if (c >= 'a' && c <= 'z') {
+            letter_count[c - 'a']++;
+            total_letters++;
+        }
+    }
+
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        if (total_letters > 0) {
+            freq[i] = (double)letter_count[i] / total_letters;
+        } else {
+            freq[i] = 0;
+        }
+    }
+}
+
+// Function to decrypt the ciphertext using a specific shift (key)
+void decrypt_caesar(const char *ciphertext, int shift, char *plaintext) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            char base = isupper(ciphertext[i]) ? 'A' : 'a';
+            plaintext[i] = (ciphertext[i] - base - shift + ALPHABET_SIZE) % ALPHABET_SIZE + base;
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[strlen(ciphertext)] = '\0';  // Null-terminate the plaintext string
+}
+
+// Function to calculate the "score" of a plaintext by comparing frequencies with English letter frequencies
+double compare_frequencies(double *text_freq) {
+    double score = 0.0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        score += fabs(text_freq[i] - english_freq[i]);
+    }
+    return score;  // The lower the score, the more likely the text is English
+}
+
+// Function to perform a frequency attack on the ciphertext
+void letter_frequency_attack(const char *ciphertext) {
+    double ciphertext_freq[ALPHABET_SIZE];
+    calculate_frequency(ciphertext, ciphertext_freq);
+
+    // Array to store possible plaintexts and their scores
+    char possible_plaintexts[ALPHABET_SIZE][MAX_TEXT_SIZE];
+    double scores[ALPHABET_SIZE];
+
+    // Try all shifts (0-25) and generate possible plaintexts
+    for (int shift = 0; shift < ALPHABET_SIZE; shift++) {
+        char plaintext[MAX_TEXT_SIZE];
+        decrypt_caesar(ciphertext, shift, plaintext);
+
+        double plaintext_freq[ALPHABET_SIZE];
+        calculate_frequency(plaintext, plaintext_freq);
+        
+        scores[shift] = compare_frequencies(plaintext_freq);
+        strcpy(possible_plaintexts[shift], plaintext);
+    }
+
+    // Sort the possible plaintexts based on their scores (ascending order)
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = i + 1; j < ALPHABET_SIZE; j++) {
+            if (scores[i] > scores[j]) {
+                double temp_score = scores[i];
+                scores[i] = scores[j];
+                scores[j] = temp_score;
+
+                char temp_plaintext[MAX_TEXT_SIZE];
+                strcpy(temp_plaintext, possible_plaintexts[i]);
+                strcpy(possible_plaintexts[i], possible_plaintexts[j]);
+                strcpy(possible_plaintexts[j], temp_plaintext);
+            }
+        }
+    }
+
+    // Display the top N possible plaintexts
+    printf("Top %d possible plaintexts based on frequency analysis:\n", TOP_N);
+    for (int i = 0; i < TOP_N; i++) {
+        printf("Rank %d: %s\n", i + 1, possible_plaintexts[i]);
+    }
+}
+
+int main() {
+    // Sample ciphertext (additive cipher or Caesar cipher)
+    char ciphertext[MAX_TEXT_SIZE];
+    
+    // Get the ciphertext from the user
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, MAX_TEXT_SIZE, stdin);
+    ciphertext[strcspn(ciphertext, "\n")] = '\0';  // Remove trailing newline
+
+    // Perform the frequency attack on the ciphertext
+    letter_frequency_attack(ciphertext);
+
+    return 0;
+}
