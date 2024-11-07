@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <ctype.h>
+
+// Function to perform encryption using the Hill cipher
+void hill_encrypt(int key[2][2], char message[], char encrypted[]) {
+    int i = 0;
+    while (message[i] != '\0') {
+        // Convert character to number (A=0, B=1, ..., Z=25)
+        int x1 = toupper(message[i]) - 'A';
+        int x2 = toupper(message[i+1]) - 'A';
+
+        // Encryption formula
+        encrypted[i] = (key[0][0] * x1 + key[0][1] * x2) % 26 + 'A';
+        encrypted[i+1] = (key[1][0] * x1 + key[1][1] * x2) % 26 + 'A';
+
+        i += 2;
+    }
+}
+
+int main() {
+    int key[2][2] = {{9, 4}, {5, 7}}; // The Hill cipher key matrix
+    char message[] = "MEETMEATHEUSALPLACEATTENRATHERTHANEIGHTO'CLOCK"; // Message to encrypt
+    char encrypted[sizeof(message)];
+
+    hill_encrypt(key, message, encrypted);
+
+    printf("Encrypted message: ");
+    for (int i = 0; encrypted[i] != '\0'; i++) {
+        printf("%c", encrypted[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
