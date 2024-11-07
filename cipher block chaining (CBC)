@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/des.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+
+#define BLOCK_SIZE 8  // 3DES block size is 8 bytes
+
+// Function to perform Triple DES encryption in CBC mode
+void triple_des_cbc_encrypt(const unsigned char *key, unsigned char *iv, const unsigned char *plaintext, unsigned char *ciphertext, size_t length) {
+    DES_key_schedule keysched1, keysched2, keysched3;
+    unsigned char block[BLOCK_SIZE];
+    size_t i;
+    
+    // Set up 3 DES keys
+    DES_set_key_unchecked((DES_cblock *)(key), &keysched1);
+    DES_set_key_unchecked((DES_cblock *)(key + 8), &keysched2);
+    DES_set_key_unchecked((DES_cblock *)(key + 16), &keysched3);
+    
+    // CBC mode encryption
+    for (i = 0; i < length; i += BLOCK_SIZE) {
+        // XOR the current plaintext block with the previous ciphertext block (or IV for the first block)
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            block[j] = plaintext[i + j] ^ iv[j];
+        }
+
+        // Perform 3DES encryption (EDE mode: Encrypt-Decrypt-Encrypt)
+        DES_ecb_encrypt((DES_cblock *)block, (DES_cblock *)block, &keysched1, DES_ENCRYPT);
+        DES_ecb_encrypt((DES_cblock *)block, (DES_cblock *)block, &keysched2, DES_DECRYPT);
+        DES_ecb_encrypt((DES_cblock *)block, (DES_cblock *)block, &keysched3, DES_ENCRYPT);
+
+        // Copy the result into the ciphertext
+        memcpy(&ciphertext[i], block, BLOCK_SIZE);
+
+        // Update the IV (previous ciphertext block becomes the new IV)
+        memcpy(iv, block, BLOCK_SIZE);
+    }
+}
+
+int main() {
+    // 3DES Key: Must be 24 bytes (3 x 8-byte keys)
+    unsigned char key[24] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+                             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
+                             0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
+    
+    // Initialization Vector (IV): 8 bytes
+    unsigned char iv[BLOCK_SIZE] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    // Plaintext to encrypt (must be multiple of 8 bytes in length)
+    unsigned char plaintext[] = "This is a test message for CBC mode.";
+
+    size_t length = strlen((char *)plaintext);
+    if (length % BLOCK_SIZE != 0) {
+        printf("Warning: Length of plaintext is not a multiple of the block size. Padding might be necessary.\n");
+    }
+
+    // Allocate memory for ciphertext
+    unsigned char ciphertext[length];
+    
+    // Perform encryption
+    triple_des_cbc_encrypt(key, iv, plaintext, ciphertext, length);
+
+    // Print the ciphertext
+    printf("Ciphertext (hex): ");
+    for (size_t i = 0; i < length; i++) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
