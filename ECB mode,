@@ -1,0 +1,53 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/des.h>
+#include <openssl/rand.h>
+
+#define BLOCK_SIZE 8  // DES block size is 8 bytes
+
+// Function to perform DES encryption in ECB mode
+void des_ecb_encrypt(const unsigned char *key, const unsigned char *plaintext, unsigned char *ciphertext, size_t length) {
+    DES_key_schedule keysched;
+    unsigned char block[BLOCK_SIZE];
+    size_t i;
+
+    // Set up the DES key
+    DES_set_key_unchecked((DES_cblock *)key, &keysched);
+
+    // Perform ECB mode encryption
+    for (i = 0; i < length; i += BLOCK_SIZE) {
+        // Copy the current plaintext block
+        memcpy(block, &plaintext[i], BLOCK_SIZE);
+
+        // Encrypt the block using DES in ECB mode
+        DES_ecb_encrypt((DES_cblock *)block, (DES_cblock *)&ciphertext[i], &keysched, DES_ENCRYPT);
+    }
+}
+
+int main() {
+    // DES Key: Must be 8 bytes
+    unsigned char key[8] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
+
+    // Plaintext to encrypt
+    unsigned char plaintext[] = "This is a test message for ECB mode.";
+
+    size_t length = strlen((char *)plaintext);
+    if (length % BLOCK_SIZE != 0) {
+        printf("Warning: Length of plaintext is not a multiple of the block size. Padding might be necessary.\n");
+    }
+
+    // Allocate memory for ciphertext
+    unsigned char ciphertext[length];
+
+    // Perform encryption
+    des_ecb_encrypt(key, plaintext, ciphertext, length);
+
+    // Print the ciphertext
+    printf("Ciphertext (hex): ");
+    for (size_t i = 0; i < length; i++) {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
