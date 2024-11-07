@@ -1,0 +1,35 @@
+#include <stdio.h>
+#include <math.h>
+
+// Function to calculate the factorial of a number
+unsigned long long factorial(int n) {
+    unsigned long long result = 1;
+    for (int i = 1; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}
+
+// Function to calculate log base 2 of a number
+double log2_of_factorial(int n) {
+    double log2_fact = 0;
+    for (int i = 1; i <= n; i++) {
+        log2_fact += log2(i);  // log2(i) is the log base 2 of i
+    }
+    return log2_fact;
+}
+
+int main() {
+    int n = 26;  // We are selecting 25 unique letters from the alphabet of 26
+    unsigned long long factorial_result = factorial(n);
+
+    // Calculate the log base 2 of 26!
+    double log2_result = log2_of_factorial(n);
+
+    // Print the result as an approximate power of 2
+    printf("Factorial of 26 (26!) = %llu\n", factorial_result);
+    printf("Log2(26!) = %.2f\n", log2_result);
+    printf("Approximate number of Playfair cipher keys: 2^%.2f\n", log2_result);
+
+    return 0;
+}
