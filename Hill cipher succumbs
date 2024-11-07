@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MOD 26
+
+// Function to compute the inverse of a number modulo 26
+int mod_inverse(int a, int m) {
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) {
+            return x;
+        }
+    }
+    return -1;  // Should not reach here if m is coprime with a
+}
+
+// Function to compute the determinant of a 2x2 matrix modulo 26
+int determinant(int a, int b, int c, int d) {
+    return (a * d - b * c) % MOD;
+}
+
+// Function to compute the inverse of a 2x2 matrix modulo 26
+int inverse_matrix_2x2(int matrix[2][2], int result[2][2]) {
+    int det = determinant(matrix[0][0], matrix[0][1], matrix[1][0], matrix[1][1]);
+    int det_inv = mod_inverse(det, MOD);
+
+    if (det_inv == -1) {
+        printf("Matrix is not invertible modulo %d\n", MOD);
+        return -1;
+    }
+
+    result[0][0] = (det_inv * matrix[1][1]) % MOD;
+    result[0][1] = (det_inv * -matrix[0][1]) % MOD;
+    result[1][0] = (det_inv * -matrix[1][0]) % MOD;
+    result[1][1] = (det_inv * matrix[0][0]) % MOD;
+
+    // Ensure the matrix elements are positive by taking modulo 26
+    result[0][0] = (result[0][0] + MOD) % MOD;
+    result[0][1] = (result[0][1] + MOD) % MOD;
+    result[1][0] = (result[1][0] + MOD) % MOD;
+    result[1][1] = (result[1][1] + MOD) % MOD;
+
+    return 0;
+}
+
+// Function to multiply two 2x2 matrices modulo 26
+void multiply_matrices(int A[2][2], int B[2][2], int result[2][2]) {
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            result[i][j] = 0;
+            for (int k = 0; k < 2; k++) {
+                result[i][j] = (result[i][j] + A[i][k] * B[k][j]) % MOD;
+            }
+        }
+    }
+}
+
+// Function to multiply a 2x2 matrix with a 2x1 matrix (column vector) modulo 26
+void multiply_matrix_vector(int A[2][2], int B[2][1], int result[2][1]) {
+    for (int i = 0; i < 2; i++) {
+        result[i][0] = 0;
+        for (int j = 0; j < 2; j++) {
+            result[i][0] = (result[i][0] + A[i][j] * B[j][0]) % MOD;
+        }
+    }
+}
+
+// Convert character to number (A=0, B=1, ..., Z=25)
+int char_to_num(char c) {
+    return c - 'A';
+}
+
+// Convert number back to character
+char num_to_char(int n) {
+    return n + 'A';
+}
+
+int main() {
+    // Plaintext and corresponding ciphertext pairs
+    // Plaintext P1 = "HI", P2 = "BY"
+    // Ciphertext C1 = "GF", C2 = "LM"
+
+    char plaintext1[] = "HI";
+    char plaintext2[] = "BY";
+    char ciphertext1[] = "GF";
+    char ciphertext2[] = "LM";
+
+    // Step 1: Convert the characters into numbers
+    int P1[2][1] = { {char_to_num(plaintext1[0])}, {char_to_num(plaintext1[1])} };
+    int P2[2][1] = { {char_to_num(plaintext2[0])}, {char_to_num(plaintext2[1])} };
+    int C1[2][1] = { {char_to_num(ciphertext1[0])}, {char_to_num(ciphertext1[1])} };
+    int C2[2][1] = { {char_to_num(ciphertext2[0])}, {char_to_num(ciphertext2[1])} };
+
+    // Step 2: Form the matrix P and C
+    int P[2][2] = { {P1[0][0], P2[0][0]}, {P1[1][0], P2[1][0]} };
+    int C[2][2] = { {C1[0][0], C2[0][0]}, {C1[1][0], C2[1][0]} };
+
+    // Step 3: Find the inverse of P matrix
+    int P_inv[2][2];
+    if (inverse_matrix_2x2(P, P_inv) != 0) {
+        printf("Error: Could not invert matrix P\n");
+        return 1;
+    }
+
+    // Step 4: Calculate the key matrix K = C * P_inv
+    int K[2][2];
+    multiply_matrices(C, P_inv, K);
+
+    printf("Recovered Key Matrix:\n");
+    printf("%d %d\n", K[0][0], K[0][1]);
+    printf("%d %d\n", K[1][0], K[1][1]);
+
+    // Step 5: Decrypt ciphertext to recover the original message
+    int C_text[2][1] = { {char_to_num("GF"[0])}, {char_to_num("GF"[1])} };
+    int key_inv[2][2];
+    if (inverse_matrix_2x2(K, key_inv) != 0) {
+        printf("Error: Could not invert key matrix\n");
+        return 1;
+    }
+
+    // Decrypting the ciphertext
+    int decrypted[2][1];
+    multiply_matrix_vector(key_inv, C_text, decrypted);
+    printf("Decrypted message: %c%c\n", num_to_char(decrypted[0][0]), num_to_char(decrypted[1][0]));
+
+    return 0;
+}
