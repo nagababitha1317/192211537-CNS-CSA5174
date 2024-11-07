@@ -1,0 +1,90 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+
+#define ALPHABET_SIZE 26
+
+// Function to convert a character to a number (A = 0, B = 1, ..., Z = 25)
+int char_to_num(char c) {
+    return c - 'A';
+}
+
+// Function to convert a number back to a character (0 = A, 1 = B, ..., 25 = Z)
+char num_to_char(int n) {
+    return n + 'A';
+}
+
+// Function to generate a random key stream of length n (between 0 and 25 for each element)
+void generate_random_key(int *key, int length) {
+    for (int i = 0; i < length; i++) {
+        key[i] = rand() % ALPHABET_SIZE;  // Random number between 0 and 25
+    }
+}
+
+// Function to encrypt the plaintext using the OTP Vigenère cipher
+void otp_vigenere_encrypt(char *plaintext, int *key, char *ciphertext) {
+    int length = strlen(plaintext);
+
+    for (int i = 0; i < length; i++) {
+        if (plaintext[i] >= 'A' && plaintext[i] <= 'Z') {  // Encrypt only uppercase letters
+            int plain_num = char_to_num(plaintext[i]);
+            int encrypted_num = (plain_num + key[i]) % ALPHABET_SIZE;
+            ciphertext[i] = num_to_char(encrypted_num);
+        } else {
+            ciphertext[i] = plaintext[i];  // Non-alphabet characters remain unchanged
+        }
+    }
+    ciphertext[length] = '\0';  // Null-terminate the ciphertext string
+}
+
+// Function to decrypt the ciphertext using the OTP Vigenère cipher
+void otp_vigenere_decrypt(char *ciphertext, int *key, char *plaintext) {
+    int length = strlen(ciphertext);
+
+    for (int i = 0; i < length; i++) {
+        if (ciphertext[i] >= 'A' && ciphertext[i] <= 'Z') {  // Decrypt only uppercase letters
+            int cipher_num = char_to_num(ciphertext[i]);
+            int decrypted_num = (cipher_num - key[i] + ALPHABET_SIZE) % ALPHABET_SIZE;
+            plaintext[i] = num_to_char(decrypted_num);
+        } else {
+            plaintext[i] = ciphertext[i];  // Non-alphabet characters remain unchanged
+        }
+    }
+    plaintext[length] = '\0';  // Null-terminate the plaintext string
+}
+
+int main() {
+    // Seed the random number generator
+    srand(time(NULL));
+
+    // Sample plaintext (only uppercase letters are processed)
+    char plaintext[] = "HELLO WORLD";
+
+    int length = strlen(plaintext);
+
+    // Generate a random key stream of the same length as the plaintext
+    int key[length];
+    generate_random_key(key, length);
+
+    // Encrypt the plaintext using the OTP Vigenère cipher
+    char ciphertext[length + 1];
+    otp_vigenere_encrypt(plaintext, key, ciphertext);
+
+    // Print the original plaintext, ciphertext, and key (for illustration)
+    printf("Original plaintext: %s\n", plaintext);
+    printf("Generated key stream: ");
+    for (int i = 0; i < length; i++) {
+        printf("%d ", key[i]);
+    }
+    printf("\nCiphertext: %s\n", ciphertext);
+
+    // Decrypt the ciphertext back to the plaintext
+    char decrypted_text[length + 1];
+    otp_vigenere_decrypt(ciphertext, key, decrypted_text);
+
+    // Print the decrypted text
+    printf("Decrypted plaintext: %s\n", decrypted_text);
+
+    return 0;
+}
