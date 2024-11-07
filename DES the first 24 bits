@@ -1,0 +1,62 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define KEY_SIZE 8   // 64-bit key (8 bytes)
+#define NUM_ROUNDS 16
+#define SHIFT_TABLE_1 1
+#define SHIFT_TABLE_2 2
+
+// Example Initial Key (56-bit key derived from 64-bit key with parity bits)
+uint64_t initial_key = 0x133457799BBCDFF1;  // Example 64-bit key (56 bits used)
+
+// Left shift table (actual shifts differ between rounds, simplified here)
+int shift_table[NUM_ROUNDS] = {1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2, 2};
+
+// Key schedule generation
+void key_schedule(uint64_t key, uint64_t subkeys[NUM_ROUNDS]) {
+    // Step 1: Apply initial permutation (IP) (simplified for now, not done here)
+    uint32_t C = (key >> 28) & 0xFFFFFFF;  // Left half (28 bits)
+    uint32_t D = key & 0xFFFFFFF;          // Right half (28 bits)
+
+    // Step 2: Key generation loop for 16 rounds
+    for (int round = 0; round < NUM_ROUNDS; round++) {
+        // Perform left shifts according to the shift table
+        C = (C << shift_table[round]) | (C >> (28 - shift_table[round]));  // Circular shift C
+        D = (D << shift_table[round]) | (D >> (28 - shift_table[round]));  // Circular shift D
+
+        C &= 0xFFFFFFF;  // Keep only 28 bits
+        D &= 0xFFFFFFF;  // Keep only 28 bits
+
+        // Step 3: Combine C and D and generate the subkey
+        uint64_t combined = ((uint64_t)C << 28) | D;
+
+        // Step 4: Split the combined key into the first 24 bits from C and second 24 bits from D
+        uint64_t subkey = 0;
+        subkey |= (C & 0xFFFFFF) << 24;   // First 24 bits from C (using the leftmost part of C)
+        subkey |= (D & 0xFFFFFF);         // Second 24 bits from D (using the rightmost part of D)
+
+        // Store the subkey
+        subkeys[round] = subkey;
+    }
+}
+
+// Print the subkeys in hexadecimal format
+void print_subkeys(uint64_t subkeys[NUM_ROUNDS]) {
+    printf("Generated subkeys (in reverse order for decryption):\n");
+    for (int i = NUM_ROUNDS - 1; i >= 0; i--) {
+        printf("K%d: 0x%016lx\n", NUM_ROUNDS - i, subkeys[i]);
+    }
+}
+
+int main() {
+    uint64_t subkeys[NUM_ROUNDS];  // Array to store the 16 subkeys
+
+    // Generate the subkeys using the key schedule
+    key_schedule(initial_key, subkeys);
+
+    // Print the subkeys
+    print_subkeys(subkeys);
+
+    return 0;
+}
