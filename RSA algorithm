@@ -1,0 +1,104 @@
+#include <stdio.h>
+
+// Function to calculate the GCD of two numbers
+int gcd(int a, int b) {
+    while (b) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// Function to perform modular exponentiation (base^exp % mod)
+int mod_exp(int base, int exp, int mod) {
+    int result = 1;
+    base = base % mod;
+
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % mod;
+        }
+        exp = exp >> 1;
+        base = (base * base) % mod;
+    }
+    return result;
+}
+
+// Function to find the modular inverse of e mod phi using Extended Euclidean Algorithm
+int mod_inverse(int e, int phi) {
+    int m0 = phi, t, q;
+    int x0 = 0, x1 = 1;
+
+    if (phi == 1) return 0;
+
+    while (e > 1) {
+        // q is quotient
+        q = e / phi;
+        t = phi;
+
+        // phi is remainder now, process same as Euclid's algo
+        phi = e % phi;
+        e = t;
+
+        t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+    }
+
+    // Make x1 positive
+    if (x1 < 0) x1 += m0;
+
+    return x1;
+}
+
+// Function implementing the common factor attack
+int common_factor_attack(int n, int e, int *blocks, int num_blocks, int *plaintext_blocks) {
+    int common_factor = 0;
+
+    // Search for a common factor among blocks and n
+    for (int i = 0; i < num_blocks; i++) {
+        for (int j = i + 1; j < num_blocks; j++) {
+            if (gcd(blocks[i], n) != 1 && gcd(blocks[j], n) != 1) {
+                common_factor = gcd(blocks[i], n);
+                break;
+            }
+        }
+        if (common_factor) break;
+    }
+
+    if (common_factor) {
+        int p = common_factor;
+        int q = n / p;
+        int phi = (p - 1) * (q - 1);
+        int d = mod_inverse(e, phi);  // Private key exponent
+
+        // Decrypt each block using the private key exponent
+        for (int i = 0; i < num_blocks; i++) {
+            plaintext_blocks[i] = mod_exp(blocks[i], d, n);
+        }
+        return 1;  // Common factor found, decryption successful
+    }
+    
+    return 0;  // No common factor found
+}
+
+int main() {
+    int n = 3233;  // Modulus
+    int e = 17;    // Public exponent
+    int blocks[] = {1791, 123, 2509, 1281};  // Encrypted blocks
+    int num_blocks = sizeof(blocks) / sizeof(blocks[0]);
+    int plaintext_blocks[num_blocks];
+
+    if (common_factor_attack(n, e, blocks, num_blocks, plaintext_blocks)) {
+        printf("Plaintext blocks:\n");
+        for (int i = 0; i < num_blocks; i++) {
+            printf("%d ", plaintext_blocks[i]);
+        }
+        printf("\n");
+    } else {
+        printf("No common factor found.\n");
+    }
+
+    return 0;
+}
