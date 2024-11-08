@@ -1,0 +1,77 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BLOCK_SIZE 8 // S-DES block size is 8 bits
+#define IV 0b10101010 // Binary initialization vector
+#define KEY 0b011111101 // Binary key
+
+// S-DES functions (placeholders for actual S-DES implementation)
+unsigned char sdes_encrypt(unsigned char plaintext, unsigned char key) {
+    // Placeholder for S-DES encryption logic
+    // Replace this with actual S-DES encryption implementation
+    return (plaintext + key) % 256; // Simple addition for demonstration
+}
+
+unsigned char sdes_decrypt(unsigned char ciphertext, unsigned char key) {
+    // Placeholder for S-DES decryption logic
+    // Replace this with actual S-DES decryption implementation
+    return (ciphertext - key + 256) % 256; // Simple subtraction for demonstration
+}
+
+// Function to perform CBC encryption
+void cbc_encrypt(unsigned char *plaintext, unsigned char *ciphertext, unsigned char key, unsigned char iv) {
+    unsigned char previous_block = iv;
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        // XOR with previous block (IV for the first block)
+        plaintext[i] ^= previous_block;
+        // Encrypt the result
+        ciphertext[i] = sdes_encrypt(plaintext[i], key);
+        // Update previous block
+        previous_block = ciphertext[i];
+    }
+}
+
+// Function to perform CBC decryption
+void cbc_decrypt(unsigned char *ciphertext, unsigned char *plaintext, unsigned char key, unsigned char iv) {
+    unsigned char previous_block = iv;
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        // Decrypt the ciphertext
+        unsigned char decrypted = sdes_decrypt(ciphertext[i], key);
+        // XOR with previous block (IV for the first block)
+        plaintext[i] = decrypted ^ previous_block;
+        // Update previous block
+        previous_block = ciphertext[i];
+    }
+}
+
+int main() {
+    unsigned char plaintext[BLOCK_SIZE] = {0b00000001, 0b00001000, 0b00000011}; // Binary plaintext
+    unsigned char ciphertext[BLOCK_SIZE] = {0};
+    unsigned char decrypted[BLOCK_SIZE] = {0};
+
+    printf("Plaintext: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%08b ", plaintext[i]);
+    }
+    printf("\n");
+
+    // Encrypt the plaintext
+    cbc_encrypt(plaintext, ciphertext, KEY, IV);
+    
+    printf("Ciphertext: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%08b ", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decrypt the ciphertext
+    cbc_decrypt(ciphertext, decrypted, KEY, IV);
+    
+    printf("Decrypted: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%08b ", decrypted[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
