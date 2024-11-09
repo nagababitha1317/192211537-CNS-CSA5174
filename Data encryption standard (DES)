@@ -1,0 +1,143 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+// 64-bit input block and 56-bit key (as example for simplicity)
+#define DES_BLOCK_SIZE 64
+#define DES_KEY_SIZE 56
+
+// Initial Permutation Table (IP)
+int IP[64] = {
+    58, 50, 42, 34, 26, 18, 10, 2,
+    60, 52, 44, 36, 28, 20, 12, 4,
+    62, 54, 46, 38, 30, 22, 14, 6,
+    64, 56, 48, 40, 32, 24, 16, 8,
+    57, 49, 41, 33, 25, 17, 9, 1,
+    59, 51, 43, 35, 27, 19, 11, 3,
+    61, 53, 45, 37, 29, 21, 13, 5,
+    63, 55, 47, 39, 31, 23, 15, 7
+};
+
+// Final Permutation Table (FP)
+int FP[64] = {
+    40, 8, 48, 16, 56, 24, 64, 32,
+    39, 7, 47, 15, 55, 23, 63, 31,
+    38, 6, 46, 14, 54, 22, 62, 30,
+    37, 5, 45, 13, 53, 21, 61, 29,
+    36, 4, 44, 12, 52, 20, 60, 28,
+    35, 3, 43, 11, 51, 19, 59, 27,
+    34, 2, 42, 10, 50, 18, 58, 26,
+    33, 1, 41, 9, 49, 17, 57, 25
+};
+
+// Example S-Boxes (only a subset for simplicity)
+int S1[4][16] = {
+    {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7},
+    {0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8},
+    {4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0},
+    {15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13}
+};
+
+// Rotate left function for key schedule
+void rotate_left(uint64_t* val, int shift_bits) {
+    *val = ((*val) << shift_bits) | ((*val) >> (DES_BLOCK_SIZE - shift_bits));
+}
+
+// Permutation function: applies the permutation table to a 64-bit input
+uint64_t permute(uint64_t input, int* table, int size) {
+    uint64_t output = 0;
+    for (int i = 0; i < size; i++) {
+        int bit = (input >> (64 - table[i])) & 1;
+        output = (output << 1) | bit;
+    }
+    return output;
+}
+
+// Function for the Feistel round function (simplified)
+uint64_t feistel(uint64_t half_block, uint64_t subkey) {
+    // Expansion and substitution are omitted for simplicity in this example
+    // In a full DES implementation, this step would involve expanding, S-box substitution, and permutation
+    return half_block ^ subkey; // Simplified for educational purposes
+}
+
+// Simple DES encryption function (simplified)
+uint64_t des_encrypt(uint64_t plaintext, uint64_t key) {
+    uint64_t left, right;
+    uint64_t round_key, round_output;
+
+    // Initial permutation of the plaintext
+    plaintext = permute(plaintext, IP, 64);
+
+    // Split the block into left and right halves
+    left = (plaintext >> 32) & 0xFFFFFFFF;
+    right = plaintext & 0xFFFFFFFF;
+
+    // Key schedule and rounds would be implemented here
+    for (int round = 0; round < 16; round++) {
+        round_key = key;  // For simplicity, we use the same key (normally we generate subkeys)
+        round_output = feistel(right, round_key);
+
+        // XOR the result with the left half
+        left ^= round_output;
+
+        // Swap the halves
+        uint64_t temp = left;
+        left = right;
+        right = temp;
+    }
+
+    // Combine the left and right halves and apply final permutation
+    uint64_t combined = (left << 32) | right;
+    combined = permute(combined, FP, 64);
+
+    return combined;
+}
+
+// Function to simulate DES decryption (reverse of encryption)
+uint64_t des_decrypt(uint64_t ciphertext, uint64_t key) {
+    uint64_t left, right;
+    uint64_t round_key, round_output;
+
+    // Initial permutation of the ciphertext
+    ciphertext = permute(ciphertext, IP, 64);
+
+    // Split the block into left and right halves
+    left = (ciphertext >> 32) & 0xFFFFFFFF;
+    right = ciphertext & 0xFFFFFFFF;
+
+    // Key schedule and rounds would be implemented here (same as encryption but reverse order)
+    for (int round = 15; round >= 0; round--) {
+        round_key = key;  // For simplicity, we use the same key (normally we generate subkeys)
+        round_output = feistel(right, round_key);
+
+        // XOR the result with the left half
+        left ^= round_output;
+
+        // Swap the halves
+        uint64_t temp = left;
+        left = right;
+        right = temp;
+    }
+
+    // Combine the left and right halves and apply final permutation
+    uint64_t combined = (left << 32) | right;
+    combined = permute(combined, FP, 64);
+
+    return combined;
+}
+
+int main() {
+    uint64_t plaintext = 0x1234567890abcdef; // Example plaintext (64-bit)
+    uint64_t key = 0x133457799BBCDFF1;      // Example key (64-bit, but only 56 bits are used)
+
+    printf("Plaintext: 0x%llx\n", plaintext);
+    printf("Key: 0x%llx\n", key);
+
+    uint64_t ciphertext = des_encrypt(plaintext, key);
+    printf("Ciphertext: 0x%llx\n", ciphertext);
+
+    uint64_t decrypted = des_decrypt(ciphertext, key);
+    printf("Decrypted: 0x%llx\n", decrypted);
+
+    return 0;
+}
