@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+#define MAX_TEXT_LENGTH 1024
+#define TOP_N 10
+
+// Function to calculate frequency of each letter in the given text
+void calculate_frequency(const char *text, int frequency[ALPHABET_SIZE]) {
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        frequency[i] = 0;
+    }
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        char c = tolower(text[i]);
+        if (isalpha(c)) {
+            frequency[c - 'a']++;
+        }
+    }
+}
+
+// Function to sort the letters based on frequency
+void sort_frequency(int frequency[ALPHABET_SIZE], char letters[ALPHABET_SIZE]) {
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        letters[i] = 'a' + i;
+    }
+
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = 0; j < ALPHABET_SIZE - i - 1; j++) {
+            if (frequency[j] < frequency[j + 1]) {
+                // Swap frequency
+                int temp_freq = frequency[j];
+                frequency[j] = frequency[j + 1];
+                frequency[j + 1] = temp_freq;
+
+                // Swap corresponding letters
+                char temp_letter = letters[j];
+                letters[j] = letters[j + 1];
+                letters[j + 1] = temp_letter;
+            }
+        }
+    }
+}
+
+// Function to perform the substitution based on frequency analysis
+void generate_plaintexts(const char *ciphertext, const char *key, char possible_plaintexts[TOP_N][MAX_TEXT_LENGTH]) {
+    for (int i = 0; i < TOP_N; i++) {
+        strcpy(possible_plaintexts[i], ciphertext); // Copy ciphertext as base
+    }
+
+    for (int i = 0; i < strlen(ciphertext); i++) {
+        char c = tolower(ciphertext[i]);
+        if (isalpha(c)) {
+            // Substitute using the key
+            for (int j = 0; j < ALPHABET_SIZE; j++) {
+                if (c == key[j]) {
+                    for (int k = 0; k < TOP_N; k++) {
+                        possible_plaintexts[k][i] = 'a' + j; // Replace with corresponding letter
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    char ciphertext[MAX_TEXT_LENGTH];
+    int frequency[ALPHABET_SIZE];
+    char letters[ALPHABET_SIZE];
+    char possible_plaintexts[TOP_N][MAX_TEXT_LENGTH];
+
+    // Frequency of letters in English (approximate)
+    const char *english_freq_order = "etaoinshrdlcumwfgypbvkjxqz";
+
+    // Input ciphertext
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, MAX_TEXT_LENGTH, stdin);
+    
+    // Calculate frequency of letters in the ciphertext
+    calculate_frequency(ciphertext, frequency);
+    
+    // Sort frequency and get corresponding letters
+    sort_frequency(frequency, letters);
+    
+    // Generate possible plaintexts based on frequency
+    generate_plaintexts(ciphertext, letters, possible_plaintexts);
+    
+    // Output the top N possible plaintexts
+    printf("\nTop %d possible plaintexts:\n", TOP_N);
+    for (int i = 0; i < TOP_N; i++) {
+        printf("%d: %s\n", i + 1, possible_plaintexts[i]);
+    }
+
+    return 0;
+}
