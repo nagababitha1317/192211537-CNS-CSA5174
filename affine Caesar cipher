@@ -1,0 +1,60 @@
+#include <iostream>
+#include <cstring> // Include this header for strcspn
+#include <cstdlib>
+
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int is_coprime(int a, int b) {
+    return gcd(a, b) == 1;
+}
+
+char encrypt_char(char p, int a, int b) {
+    if (p >= 'A' && p <= 'Z') {
+        return 'A' + (a * (p - 'A') + b) % 26;
+    } else if (p >= 'a' && p <= 'z') {
+        return 'a' + (a * (p - 'a') + b) % 26;
+    }
+    return p; // Non-alphabet characters remain unchanged
+}
+
+void encrypt(const char *plaintext, int a, int b, char *ciphertext) {
+    for (int i = 0; plaintext[i] != '\0'; i++) {
+        ciphertext[i] = encrypt_char(plaintext[i], a, b);
+    }
+}
+
+int main() {
+    char plaintext[256];
+    int a, b;
+
+    // Input the plaintext
+    std::cout << "Enter the plaintext: ";
+    std::cin.getline(plaintext, sizeof(plaintext));
+
+    // Input the values of a and b
+    std::cout << "Enter the value of a (must be coprime to 26): ";
+    std::cin >> a;
+    std::cout << "Enter the value of b: ";
+    std::cin >> b;
+
+    // Check if a is coprime to 26
+    if (!is_coprime(a, 26)) {
+        std::cout << "The value of a must be coprime to 26. Please try again.\n";
+        return 1;
+    }
+
+    char ciphertext[256];
+    encrypt(plaintext, a, b, ciphertext);
+
+    // Output the ciphertext
+    std::cout << "Ciphertext: " << ciphertext << std::endl;
+
+    return 0;
+}
